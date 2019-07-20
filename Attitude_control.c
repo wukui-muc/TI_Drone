@@ -20,8 +20,10 @@ void Attitude_control(float PitchCalibration,float RollCalibration)
     }
     else
     {
-        UAVThrust.PitchThrust = PID_Control(&PID_ParaInfo.PitchRate,&OriginalPitchRate,Target_Info.RatePitch/100,
-                                                                RT_Info.ratePitch,0.005,80,lowpass_filter);
+//        UAVThrust.PitchThrust = PID_Control(&PID_ParaInfo.PitchRate,&OriginalPitchRate,Target_Info.RatePitch/100,
+//                                                                RT_Info.ratePitch,0.005,80,lowpass_filter);
+        UAVThrust.PitchThrust = PID_Control(&PID_ParaInfo.PitchRate,&OriginalPitchRate,OriginalPitch.value,
+                                                                     RT_Info.ratePitch,0.005,80,lowpass_filter);
     }
 
     float rollErro = (Target_Info.Roll-(RT_Info.Roll-RollCalibration));
@@ -33,8 +35,10 @@ void Attitude_control(float PitchCalibration,float RollCalibration)
     }
     else
     {
-        UAVThrust.RollThrust = PID_Control(&PID_ParaInfo.RollRate,&OriginalRollRate,Target_Info.RateRoll/100,
-                                                                   RT_Info.rateRoll,0.005,80,lowpass_filter);
+//        UAVThrust.RollThrust = PID_Control(&PID_ParaInfo.RollRate,&OriginalRollRate,Target_Info.RateRoll/100,
+//                                                                   RT_Info.rateRoll,0.005,80,lowpass_filter);
+        UAVThrust.RollThrust = PID_Control(&PID_ParaInfo.RollRate,&OriginalRollRate,OriginalRoll.value,
+                                                                       RT_Info.rateRoll,0.005,80,lowpass_filter);
     }
 
     if(RockerControl.Navigation == 0)
@@ -48,27 +52,27 @@ void Attitude_control(float PitchCalibration,float RollCalibration)
         //外环角度单P控制
         if(RT_Info.Height>=0.8)
         {
-            Target_Info.Yaw=Target_Info.BlackLineYaw;
+
             if(Target_Info.Yaw - RT_Info.Yaw>=180)
             {
-//                yawErro=(Target_Info.Yaw - RT_Info.Yaw) - 360 ;
-                Target_Info.Yaw=Target_Info.Yaw-360;
+                yawErro=(Target_Info.Yaw - RT_Info.Yaw) - 360 ;
+//                Target_Info.Yaw=Target_Info.Yaw-360;
 
             }
             else if(Target_Info.Yaw - RT_Info.Yaw<-180)
             {
-//                yawErro=(Target_Info.Yaw - RT_Info.Yaw) + 360 ;
-                Target_Info.Yaw=Target_Info.Yaw+360;
+                yawErro=(Target_Info.Yaw - RT_Info.Yaw) + 360 ;
+//                Target_Info.Yaw=Target_Info.Yaw+360;
             }
             else
             {
 //                yawErro=(Target_Info.Yaw - RT_Info.Yaw);
-                Target_Info.Yaw=Target_Info.Yaw;
+                yawErro=Target_Info.Yaw;
             }
-//            OriginalYaw.value= Limits_data (PID_Control(&PID_ParaInfo.Yaw,&OriginalYaw, Target_Info.Yaw ,RT_Info.Yaw,0.005,80,lowpass_filter),15,-15);
-//            OriginalYaw.value= PID_Control(&PID_ParaInfo.Yaw,&OriginalYaw, Target_Info.Yaw ,RT_Info.Yaw,0.005,80,lowpass_filter);
-
-
+        }
+        else
+        {
+            yawErro=0;
         }
 //        if(RT_Info.Height>=0.8)
 //        {
@@ -82,11 +86,12 @@ void Attitude_control(float PitchCalibration,float RollCalibration)
 //               Target_Info.Yaw=-(90+Target_Info.BlackLineYaw);
 //               yawErro=Target_Info.Yaw-RT_Info.Yaw;
 //           }
-           // 倾角分离，使用衰减算法来保持Pitch和Roll在大航向偏差控制下的稳定性   0.7为衰减系数
-//           yawErro = 0.7f * yawErro  * cos(RT_Info.Pitch * 0.0174f) * cos(RT_Info.Roll * 0.0174f);
 
-//           OriginalYaw.value = PID_ParaInfo.Yaw.Kp * yawErro;
-        OriginalYaw.value = PID_ParaInfo.Yaw.Kp * (Target_Info.Yaw - RT_Info.Yaw);
+           // 倾角分离，使用衰减算法来保持Pitch和Roll在大航向偏差控制下的稳定性   0.7为衰减系数
+           yawErro = 0.7f * yawErro  * cos(RT_Info.Pitch * 0.0174f) * cos(RT_Info.Roll * 0.0174f);
+
+           OriginalYaw.value = PID_ParaInfo.Yaw.Kp * yawErro;
+//        OriginalYaw.value = PID_ParaInfo.Yaw.Kp * (Target_Info.Yaw - RT_Info.Yaw);
         UAVThrust.YawThrust = Limits_data (PID_Control(&PID_ParaInfo.YawRate,&OriginalYaw, OriginalYaw.value ,RT_Info.rateYaw,0.005,80,lowpass_filter),100,-100);
 
 //        }
@@ -114,11 +119,11 @@ void Throttle_Angle_Compensate(void)//油门倾角补偿
   {
       Temp=(uint16_t)(MAX(ABS(100*RT_Info.Pitch),ABS(100*RT_Info.Roll)));
       Temp=Limits_data(9000-Temp,3000,0)/(3000*CosPitch_CosRoll);
-      UAVThrust.BasicThrust= battery3000*Temp; //油门倾角补偿
-//      UAVThrust.BasicThrust=(uint16_t)(Limits_data(UAVThrust.BasicThrust,570,530));
-      UAVThrust.BasicThrust=(uint16_t)(Limits_data(UAVThrust.BasicThrust,battery3000*1.07,battery2200));
+      UAVThrust.BasicThrust= 530*Temp; //油门倾角补偿
+      UAVThrust.BasicThrust=(uint16_t)(Limits_data(UAVThrust.BasicThrust,570,530));
+    //  UAVThrust.BasicThrust=(uint16_t)(Limits_data(UAVThrust.BasicThrust,battery3000*1.07,battery2200));
   }
-  else UAVThrust.BasicThrust= battery3000;
+  else UAVThrust.BasicThrust= 530;
 }
 
 void Calculate_Thrust(){
