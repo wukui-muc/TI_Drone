@@ -341,7 +341,8 @@ typedef struct{
     float Raspberry_Line_Yaxis;
     float Raspberry_carx;
     float Raspberry_cary;
-
+    float FlowVX_fix;
+    float FlowVY_fix;
 
 }SensorData;
 
