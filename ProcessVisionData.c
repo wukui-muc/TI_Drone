@@ -52,24 +52,23 @@ void Process_VisionData(Uint16 *VisionData){
             Detect_Mode=Detect_Line;
             Fly_Mode = Data_Line;
         }
-        else if(VisionData[2]==0x40)
+        else if(VisionData[2]==0x40) //视觉里程
+
        {
            tmp =  ( (int)VisionData[3]<<8 ) + VisionData[4];
-           Sensor_Info.FlowVelX = ( (float)tmp  *0.1f  * RT_Info.Height * 0.1125f ) / 0.304f ;
-
+           Sensor_Info.FlowVelX = ( (float)tmp  *0.1f  * RT_Info.Height * 0.1125f ) / 0.304f + RT_Info.ratePitch*0.0174*RT_Info.Height;//旋转补偿
+           //Sensor_Info.VIO_Xaxis=RT_Info.ratePitch*0.0174*RT_Info.Height;
+           //Sensor_Info.FlowVX_fix = Sensor_Info.FlowVelX+Sensor_Info.VIO_Xaxis;
+            
            tmp = ( (int)VisionData[5]<<8 ) + VisionData[6];
-           Sensor_Info.FlowVelY = ( (float)tmp  *0.1f  * RT_Info.Height * 0.1125f ) / 0.304f ;
+           Sensor_Info.FlowVelY = ( (float)tmp  *0.1f  * RT_Info.Height * 0.1125f ) / 0.304f +RT_Info.rateRoll*0.0174*RT_Info.Height;//旋转补偿
            Sensor_Info.US100_Zaxis = UnsignedcharToFloat(VisionData,11) * cos(RT_Info.Pitch * 0.0174f) * cos(RT_Info.Roll * 0.0174f);
+//             Sensor_Info.VIO_Yaxis=RT_Info.rateRoll*0.0174*RT_Info.Height;
+//            Sensor_Info.FlowVY_fix = Sensor_Info.FlowVelY+Sensor_Info.VIO_Yaxis;//旋转补偿
 
-           //视觉里程
-//           tmp =  ( (int)VisionData[7]<<8 ) + VisionData[8];
-//           Sensor_Info.VIO_Xaxis = ( (float)tmp  *0.01f  * RT_Info.Height * 0.1125f ) / 0.304f -RT_Info.Height*sin(RT_Info.Pitch*0.0174f);
-//           RT_Info.VIOX=Sensor_Info.VIO_Xaxis+RT_Info.VIOX;
-//           tmp =  ( (int)VisionData[9]<<8 ) + VisionData[10];
-//           Sensor_Info.VIO_Yaxis = ( (float)tmp  *0.01f  * RT_Info.Height * 0.1125f ) / 0.304f-RT_Info.Height*sin(RT_Info.Roll*0.0174f) ;
-//          //
+            
            Detect_Mode=Detect_Vio;
-//           Fly_Mode = Data_VIO;               //物体跟踪自稳模式
+//           Fly_Mode = Data_VIO;              
        }
         else if(VisionData[2]==0x50)
         {
