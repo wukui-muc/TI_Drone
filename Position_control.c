@@ -37,7 +37,7 @@ void Position_control(unsigned char Data_flag,float Climb,float Decline){
             FlightControl.landFlag = 0;
             TgtHeight = 0;
             FlightControl.ControlStart = false;
-            Target_Info.Height = 1.2f; //恢复初始的默认目标高度
+            Target_Info.Height = 1.0f; //恢复初始的默认目标高度
         }
     }
     else {
@@ -111,27 +111,25 @@ void Position_control(unsigned char Data_flag,float Climb,float Decline){
                 break;
             /************************ 定点模式  ************************/
             case 2:
-                  if(controlCnt ==2)
-                    {
-                            if(RockerControl.XaxisPos == 0  && RockerControl.YaxisPos == 0 &&
-                                            Sensor_Info.Raspberry_Xaxis!=0 && Sensor_Info.Raspberry_Yaxis!=0)
-                            {
-                                    OriginalPosX.value = PID_ParaInfo.PosX.Kp * RT_Info.PointX;
+                if(RockerControl.XaxisPos == 0  && RockerControl.YaxisPos == 0 &&
+                                Sensor_Info.Raspberry_Xaxis!=0 && Sensor_Info.Raspberry_Yaxis!=0)
+                {
+                        OriginalPosX.value = PID_ParaInfo.PosX.Kp * RT_Info.PointX;
 
-                                    Target_Info.Pitch =  Limits_data( - PID_Control(&PID_ParaInfo.VelX,&OriginalVelX,OriginalPosX.value,
-                                                                                                         RT_Info.PointX_V,0.005,3,lowpass_filter) , 6 , -6 );
+                        Target_Info.Pitch =  Limits_data( - PID_Control(&PID_ParaInfo.VelX,&OriginalVelX,OriginalPosX.value,
+                                                                                             RT_Info.PointX_V,0.005,3,lowpass_filter) , 6 , -6 );
 
-                                    OriginalPosY.value = PID_ParaInfo.PosY.Kp * RT_Info.PointY;
+                        OriginalPosY.value = PID_ParaInfo.PosY.Kp * RT_Info.PointY;
 
-                                    Target_Info.Roll = Limits_data( PID_Control(&PID_ParaInfo.VelY,&OriginalVelY,OriginalPosY.value,
-                                                                                                            RT_Info.PointY_V,0.005,3,lowpass_filter) , 6 , -6);
-                            }
-                            else
-                            {
-                                    Target_Info.Pitch = 0.3f * RockerControl.XaxisPos;
-                                    Target_Info.Roll = 0.3f * RockerControl.YaxisPos;
-                            }
-                    }
+                        Target_Info.Roll = Limits_data( PID_Control(&PID_ParaInfo.VelY,&OriginalVelY,OriginalPosY.value,
+                                                                                                RT_Info.PointY_V,0.005,3,lowpass_filter) , 6 , -6);
+                }
+                else
+                {
+                        Target_Info.Pitch = 0.3f * RockerControl.XaxisPos;
+                        Target_Info.Roll = 0.3f * RockerControl.YaxisPos;
+                }
+
                 break;
             /************************ 光流定点 ************************/
             case 3:
@@ -153,54 +151,93 @@ void Position_control(unsigned char Data_flag,float Climb,float Decline){
 
                 break;
 
-            case 4://**********寻线***/
-
-                if(controlCnt ==2)
+            case 4://**********寻线**********/
+                 if(RockerControl.XaxisPos == 0  && RockerControl.YaxisPos == 0 &&
+                                Sensor_Info.Raspberry_Line_Yaxis!=0)
                  {
-                         if(RockerControl.XaxisPos == 0  && RockerControl.YaxisPos == 0 &&
-                                        Sensor_Info.Raspberry_Yaxis!=0)
-                         {
-//                                 OriginalFlowX.value =   PID_ParaInfo.FlowX.Kp  * RT_Info.FlowX  ;
-//                                 Target_Info.Pitch = - Limits_data( PID_Control(&PID_ParaInfo.FlowVelX,&OriginalFlowVelX,OriginalFlowX.value,
-//                                                                                                    RT_Info.FlowX_V,0.005,1.5,lowpass_filter) , 25, -25 ) ;
-                             Target_Info.Pitch = - Limits_data( PID_Control(&PID_ParaInfo.FlowVelX,&OriginalFlowVelX,0.1,
-                                                                           RT_Info.FlowX_V,0.005,1.5,lowpass_filter) , 25, -25 ) ;
+    //                                 OriginalFlowX.value =   PID_ParaInfo.FlowX.Kp  * RT_Info.FlowX  ;
+    //                                 Target_Info.Pitch = - Limits_data( PID_Control(&PID_ParaInfo.FlowVelX,&OriginalFlowVelX,OriginalFlowX.value,
+    //                                                                                                    RT_Info.FlowX_V,0.005,1.5,lowpass_filter) , 25, -25 ) ;
+                         Target_Info.Pitch = - Limits_data( PID_Control(&PID_ParaInfo.FlowVelX,&OriginalFlowVelX,0.1,
+                                                                   RT_Info.FlowX_V,0.005,1.5,lowpass_filter) , 18, -18) ;
 
-                                 OriginalPosY.value = PID_ParaInfo.PosY.Kp * RT_Info.PointY;
-                                 Target_Info.Roll = Limits_data( PID_Control(&PID_ParaInfo.VelY,&OriginalVelY,OriginalPosY.value,
-                                                                             RT_Info.PointY_V,0.005,3,lowpass_filter) , 4 , -4);
-//
-//                                 Target_Info.Yaw = Target_Info.BlackLineYaw;
-                         }
-                         else
-                         {
-                                 Target_Info.Pitch = 0.3f * RockerControl.XaxisPos;
-                                 Target_Info.Roll = 0.3f * RockerControl.YaxisPos;
-                         }
+                         OriginalPosY.value = PID_ParaInfo.PosY.Kp * RT_Info.LineY;
+                         Target_Info.Roll = Limits_data( PID_Control(&PID_ParaInfo.VelY,&OriginalVelY,OriginalPosY.value,
+                                                                     RT_Info.LineY_V,0.005,3,lowpass_filter) , 18 , -18);
+    //
+                         Target_Info.Yaw = Target_Info.BlackLineYaw;
                  }
+                 else
+                 {
+                         Target_Info.Pitch = 0.3f * RockerControl.XaxisPos;
+                         Target_Info.Roll = 0.3f * RockerControl.YaxisPos;
+                 }
+
             break;
             case 5:/************************ 视觉里程计模式  ************************/
                 if(RockerControl.XaxisPos == 0  && RockerControl.YaxisPos == 0)
                 {
 //                      OriginalFlowX.value =   PID_ParaInfo.FlowX.Kp  * RT_Info.FlowX  ;
 //                      OriginalFlowY.value =   PID_ParaInfo.FlowY.Kp  * RT_Info.FlowY  ;
-                                    //±0.3m/s的目标速度
-                    OriginalFlowX.value=Limits_data( PID_Control(& PID_ParaInfo.FlowX,&OriginalFlowX,240,
-                                                                                                 RT_Info.PosX,0.005,1.5,lowpass_filter) , 0.2, -0.2 ) ;
 
 
-                    Target_Info.Pitch = - Limits_data( PID_Control(&PID_ParaInfo.FlowVelX,&OriginalFlowVelX,OriginalFlowX.value,
-                                                                                        RT_Info.FlowX_V,0.005,1.5,lowpass_filter) , 25, -25 ) ;
+
+//                    if(RT_Info.PosX<=180 || RT_Info.PosX>=270)
+//                    {
+                        OriginalFlowX.value=Limits_data( PID_Control(& PID_ParaInfo.FlowX,&OriginalFlowX,Target_Info.DisX,
+                                                                      RT_Info.FlowDisX,0.005,1.5,lowpass_filter) , 0.15, -0.15) ; //±0.3m/s的目标速度
+                        Target_Info.Pitch = - Limits_data( PID_Control(&PID_ParaInfo.FlowVelX,&OriginalFlowVelX,OriginalFlowX.value,
+                                                                            RT_Info.FlowX_V,0.005,1.5,lowpass_filter) , 20, -20 ) ;
 //
+//                    }
+//                    else if(RT_Info.PosX<=210 || RT_Info.PosX>=260)
+//                    {
+//                        OriginalFlowX.value=Limits_data( PID_Control(& PID_ParaInfo.FlowX,&OriginalFlowX,240,
+//                                                                                RT_Info.PosX,0.005,1.5,lowpass_filter) , 0.1, -0.1 ) ; //±0.3m/s的目标速度
+//                        Target_Info.Pitch = - Limits_data( PID_Control(&PID_ParaInfo.FlowVelX,&OriginalFlowVelX,OriginalFlowX.value,
+//                                                                               RT_Info.FlowX_V,0.005,1.5,lowpass_filter) , 25, -25 ) ;
+//                    }
+//                    else
+//                    {
+//
+//                      Target_Info.Pitch = - Limits_data( PID_Control(&PID_ParaInfo.FlowVelX,&OriginalFlowVelX,0,
+//                                                                            RT_Info.FlowX_V,0.005,1.5,lowpass_filter) , 25, -25 ) ;
+//                    }
+                        OriginalFlowY.value=Limits_data( PID_Control(& PID_ParaInfo.FlowX,&OriginalFlowX,Target_Info.DisY,
+                                                                             RT_Info.FlowDisY,0.005,1.5,lowpass_filter) , 0.15, -0.15) ; //±0.3m/s的目标速度
                     Target_Info.Roll = Limits_data( PID_Control(&PID_ParaInfo.FlowVelY,&OriginalFlowVelY,OriginalFlowY.value,
-                                                                            RT_Info.FlowY_V,0.005,1.5,lowpass_filter) , 25, -25 );
+                                                                            RT_Info.FlowY_V,0.005,1.5,lowpass_filter) , 20, -20 );
                 }
                 else
                 {
-                        Target_Info.Pitch =  RockerControl.XaxisPos;
-                        Target_Info.Roll =  RockerControl.YaxisPos;
+                        Target_Info.Pitch =  RockerControl.XaxisPos*0.3f;
+                        Target_Info.Roll =  RockerControl.YaxisPos*0.3f;
                 }
                 break;
+            case 6://跟随小车
+               if(RockerControl.XaxisPos == 0  && RockerControl.YaxisPos == 0 &&
+                       Sensor_Info.Raspberry_carx!=0 && Sensor_Info.Raspberry_cary!=0 &&  RT_Info.Height>0.4    )
+               {
+
+                       OriginalPosX.value = PID_ParaInfo.PosX.Kp * RT_Info.CarX;
+
+                       Target_Info.Pitch =  Limits_data( - PID_Control(&PID_ParaInfo.VelX,&OriginalVelX, OriginalPosX.value,
+                                                                   RT_Info.CarX_V,0.005,3,lowpass_filter) , 15 , -15 );
+
+                       OriginalPosY.value = PID_ParaInfo.PosY.Kp * RT_Info.CarY;
+
+                       Target_Info.Roll = Limits_data( PID_Control(&PID_ParaInfo.VelY,&OriginalVelY, OriginalPosY.value,
+                                                                   RT_Info.CarY_V,0.005,3,lowpass_filter) , 15 , -15);
+               }
+               else
+               {
+                       Target_Info.Pitch = 0.3f * RockerControl.XaxisPos;
+                       Target_Info.Roll = 0.3f * RockerControl.YaxisPos;
+               }
+
+                break;
+
+
         }
 
     }

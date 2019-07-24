@@ -21,13 +21,15 @@ FlyMode Fly_Mode;                                                               
 OffsetInfo OffsetData;                                                                   //磁偏量
 Thrust UAVThrust;                                                                        //飞行器扭力计算
 Throttle Throttle_Info;                                                                  //飞行器扭力输出
+
+DetectMode Detect_Mode;
 //控制参数
 PIDOut OriginalPitch,OriginalRoll,OriginalYaw,OriginalPosX,OriginalPosY,OriginalPosZ,
                     OriginalPitchRate,OriginalRollRate,OriginalYawRate,OriginalVelX,OriginalVelY,OriginalVelZ,
                         OriginalFlowX,OriginalFlowY,OriginalFlowVelX,OriginalFlowVelY,OriginalAccZ;
 PIDPara PID_ParaInfo;
 //融合参数
-KalmanFilter XAxis,YAxis,ZAxis,Barometer;                                                                             //卡尔曼滤波融合参数
+KalmanFilter XAxis,YAxis,ZAxis,Barometer,CARX,CARY;                                                                             //卡尔曼滤波融合参数
 
 /*
 *********************************************************************************************************
@@ -119,7 +121,7 @@ int main(void){
 /* Initialize the AHRS_HardWare.                        */
     AHRS_HardWareinit();
 /* Initialize the KalmanFilter Para.                    */
-    KalmanFilter_Init(&XAxis,&YAxis,&ZAxis,&Barometer);
+    KalmanFilter_Init(&XAxis,&YAxis,&ZAxis,&CARX,&CARY);
 /* Load Control Para.                                   */
     Load_ParaConfig();
 /* Initialize "uC/OS-II, The Real-Time Kernel".         */
@@ -287,8 +289,7 @@ static  void  App_TaskIMU (void *p_arg){
    /* Prevent compiler warning for not using 'p_arg'       */
    (void)&p_arg;
    /* Task body, always written as an infinite loop.       */
-   RT_Info.PosX=0;
-   RT_Info.PosY=0;
+
 //   RT_Info.PreX_V=0;
 //   RT_Info.PreY_V=0;
    int cnt=0;
@@ -379,7 +380,7 @@ static  void  App_TaskAttitude (void *p_arg){
             OriginalAccZ.iOut = 0;
             OriginalFlowVelX.iOut =0;
             OriginalFlowVelY.iOut =0;
-            Target_Info.Height = 1.2f; //恢复初始的默认目标高度
+            Target_Info.Height =1.0f; //恢复初始的默认目标高度
             Target_Info.Pitch = 0.0f; //恢复初始的默认目标俯仰
             Target_Info.Roll = 0.0f; //恢复初始的默认目标翻滚
             FlightControl.LaunchFlag = true; //第一次起飞标志位
@@ -410,7 +411,7 @@ static  void  App_TaskPosition (void *p_arg){
    /* Task body, always written as an infinite loop.       */
    float Climbing = 0.008f;
    float Declining = 0.002f;
-   Target_Info.Height = 1.2f;
+   Target_Info.Height = 1.0f;
     while (DEF_TRUE) {
         if(FlightControl.DroneMode == Drone_Mode_4Axis && FlightControl.OnOff==Drone_On && FlightControl.ControlStart == true){
             Position_control(Fly_Mode,Climbing,Declining);
@@ -437,9 +438,7 @@ static  void  App_TaskPosition (void *p_arg){
 static  void  App_TaskCombine (void *p_arg){
    /* Prevent compiler warning for not using 'p_arg'       */
    (void)&p_arg;
-   RT_Info.PosX=0;
-   RT_Info.PosY=0;
-   float PrePitch=0;
+
 
    int cnt=30;
 
@@ -451,12 +450,14 @@ static  void  App_TaskCombine (void *p_arg){
         RT_Info.Height_V = ZAxis.Axis_Vel;
 
 
+
+
 //        POS_KalmanFilter(&Barometer,Sensor_Info.MS5611_Zaxis,RT_Info.accZaxis);
 //        RT_Info.Height = Barometer.Axis_Pos;
 //        RT_Info.Height_V = Barometer.Axis_Vel;
 
         /* 物体追踪的位置数据卡尔曼融合 */
-        if(Fly_Mode == Data_Point )
+        if(Detect_Mode == Detect_Point)
         {
             /*地理坐标系的加速度X正轴  对应 相机的X正轴数据 */
             POS_KalmanFilter(&XAxis,Sensor_Info.Raspberry_Xaxis/100,RT_Info.AccX);
@@ -467,10 +468,12 @@ static  void  App_TaskCombine (void *p_arg){
             POS_KalmanFilter(&YAxis,Sensor_Info.Raspberry_Yaxis/100,-RT_Info.AccY);
             RT_Info.PointY = YAxis.Axis_Pos;
             RT_Info.PointY_V = YAxis.Axis_Vel;
+
         }
-        else if(Fly_Mode == Data_Flow)
+        else if(Detect_Mode == Detect_Flow)
         {
             OpticalFlow_Estimation(Sensor_Info.FlowVelX /100,Sensor_Info.FlowVelY /100,RT_Info.AccX,-RT_Info.AccY);
+
 //            RT_Info.FlowX = Average_Filter(RT_Info.FlowX_V * 0.005f,30,FlowX_Array)  * 30 ;
 //            RT_Info.FlowY = Average_Filter(RT_Info.FlowY_V * 0.005f,30,FlowY_Array)  * 30 ;
 
@@ -478,7 +481,7 @@ static  void  App_TaskCombine (void *p_arg){
 //            RT_Info.FlowY += RT_Info.FlowY_V * 0.08f;
 
         }
-        else if(Fly_Mode == Data_Follow)
+        else if(Detect_Mode == Detect_Line)
         {/*地理坐标系的加速度Y负轴  对应 相机的Y正轴数据 */
 
 //            OpticalFlow_Estimation(Sensor_Info.FlowVelX /100,Sensor_Info.FlowVelY /100,RT_Info.AccX,-RT_Info.AccY);
@@ -491,38 +494,51 @@ static  void  App_TaskCombine (void *p_arg){
 //            POS_KalmanFilter(&YAxis,Sensor_Info.Raspberry_Yaxis/100,-RT_Info.AccY);
 //            RT_Info.PointY = YAxis.Axis_Pos;
 //            RT_Info.PointY_V = YAxis.Axis_Vel;
-
-            /***寻线***/
-            POS_KalmanFilter(&YAxis,Sensor_Info.Raspberry_Yaxis/100,-RT_Info.AccY);
-            RT_Info.PointY = YAxis.Axis_Pos;
-            RT_Info.PointY_V = YAxis.Axis_Vel;
             OpticalFlow_Estimation(Sensor_Info.FlowVelX /100,Sensor_Info.FlowVelY /100,RT_Info.AccX,-RT_Info.AccY);
+            /***寻线***/
+            POS_KalmanFilter(&YAxis,Sensor_Info.Raspberry_Line_Yaxis/100,-RT_Info.AccY);
+            RT_Info.LineY = YAxis.Axis_Pos;
+            RT_Info.LineY_V = YAxis.Axis_Vel;
+//            OpticalFlow_Estimation(Sensor_Info.FlowVelX /100,Sensor_Info.FlowVelY /100,RT_Info.AccX,-RT_Info.AccY);
 //            RT_Info.FlowY += RT_Info.FlowY_V * 0.005f;
             /*********/
 
         }
-        else if(Fly_Mode == Data_VIO)
+        else if(Detect_Mode=Detect_Car)
+        {
+
+            /*地理坐标系的加速度X正轴  对应 相机的X正轴数据 */
+           POS_KalmanFilter(&CARX,Sensor_Info.Raspberry_carx/100,RT_Info.AccX);
+           RT_Info.CarX = CARX.Axis_Pos;
+           RT_Info.CarX_V = CARY.Axis_Vel;
+
+           /*地理坐标系的加速度Y负轴  对应 相机的Y正轴数据 */
+           POS_KalmanFilter(&CARY,Sensor_Info.Raspberry_cary/100,-RT_Info.AccY);
+           RT_Info.CarY = CARY.Axis_Pos;
+           RT_Info.CarY_V = CARY.Axis_Vel;
+
+        }
+        else if(Detect_Mode == Detect_Vio)
         {
             OpticalFlow_Estimation(Sensor_Info.FlowVelX /100,Sensor_Info.FlowVelY /100,RT_Info.AccX,-RT_Info.AccY);
+            Sensor_Info.VIO_Xaxis=RT_Info.ratePitch*0.0174*RT_Info.Height;
+            Sensor_Info.VIO_Yaxis=RT_Info.rateRoll*0.0174*RT_Info.Height;
+            RT_Info.FlowVX_fix = RT_Info.FlowX_V+Sensor_Info.VIO_Xaxis;
+            RT_Info.FlowVY_fix = RT_Info.FlowX_V+Sensor_Info.VIO_Yaxis;//旋转补偿
 
-            if(RT_Info.Height>0.7 )
+           if(RT_Info.Height>0.8*Target_Info.Height)
+           {
+               RT_Info.FlowDisX+=RT_Info.FlowX_V*0.005f;
+               RT_Info.FlowDisY+=RT_Info.FlowX_V*0.005f;
+           }
+
+            if(RT_Info.Height<0.3)
             {
-                RT_Info.PosX+=RT_Info.FlowX_V*0.5f;
-
+                RT_Info.FlowDisX=0;
             }
-            if(FlightControl.landFlag==1)
-            {
-                RT_Info.PosX=0;
-            }
-//            RT_Info.PosX+=RT_Info.FlowX_V*0.5f;
-//                        -sin((RT_Info.Pitch-PrePitch)*0.0174)*RT_Info.Height*100;
-//               RT_Info.PrePitch=RT_Info.Pitch;
-
-
         }
 
 
-//        OSTimeDly(5);
         OSTimeDlyHMSM(0,0,0,5);
     }
 }
@@ -677,7 +693,8 @@ static  void  App_TaskBattery (void *p_arg){
         if(RT_Info.batteryVoltage<11.10f && (FlightControl.OnOff != Drone_On))
         {
             RT_Info.lowPowerFlag = 1;
-            //此处可加小灯闪烁表示电池电量低
+            GPIO_WritePin(34,1-GPIO_ReadPin(34));
+            //此处红灯闪烁表示电池电量低
         }
         else
         {
@@ -711,9 +728,101 @@ static  void  App_TaskLED (void *p_arg)
 {
    /* Prevent compiler warning for not using 'p_arg'       */
    (void)&p_arg;
+   int cnt=0;
+   int key1,key2,key3,key4=0;
+   int flag=0;
    /* Task body, always written as an infinite loop.       */
     while (DEF_TRUE) {
-//        GPIO_WritePin(31,1-GPIO_ReadPin(31));
+        if(RT_Info.Height>0.8)
+        {
+            cnt++;
+        }
+        key1=GPIO_ReadPin(0);
+        key2=GPIO_ReadPin(1);
+        key3=GPIO_ReadPin(4);
+        key4=GPIO_ReadPin(5);
+
+        if(key1==0 && FlightControl.ControlStart)//task1
+        {
+            Fly_Mode=Data_Point;
+            if(cnt>=20)
+            {
+                FlightControl.landFlag=1;
+                cnt=0;
+            }
+
+        }
+        else if(key2==0 && FlightControl.ControlStart)//task2
+        {
+            Fly_Mode=Data_Car;
+        }
+        else if(key3==0 && FlightControl.ControlStart)//task3
+        {
+             Fly_Mode=Data_Point;
+             if(cnt>=20)
+            {
+                Fly_Mode=Data_Car;
+                if(cnt>=40)
+                {
+                    FlightControl.landFlag=1;
+                    cnt=0;
+                }
+            }
+        }
+        else if(key4==0 && FlightControl.ControlStart)//task4
+        {
+              Fly_Mode=Data_Vio;
+              if(flag==0)//直走
+              {
+                  Target_Info.DisX=1.5;
+                  if(RT_Info.FlowDisX>=0.9*Target_Info.DisX )
+                {
+                    flag=1;//右拐
+                    Target_Info.DisY=0.5;
+                    RT_Info.FlowDisX=0;
+                }
+              }
+              else if(flag==1)
+              {
+                  if(RT_Info.FlowDisY>=0.9*Target_Info.DisY)
+                  {
+                      flag=2;//向后
+                      Target_Info.DisX=-1.5;
+                      RT_Info.FlowDisY=0;
+                  }
+              }
+              else if(flag==2)
+              {
+                  if(RT_Info.FlowDisX<=0.9*Target_Info.DisX)
+                  {
+                       flag=3;
+                       Target_Info.DisY=-0.5;
+                       RT_Info.FlowDisX=0;
+                  }
+              }
+              else if(flag==3)
+              {
+                  if(RT_Info.FlowDisY<=0.95*Target_Info.DisY)
+                  {
+                      flag=0;
+                      Target_Info.DisX=0;
+                      Target_Info.DisY=0;
+                      RT_Info.FlowDisX=0;
+                      RT_Info.FlowDisY=0;
+                      FlightControl.landFlag=1;
+
+                  }
+              }
+
+
+
+
+        }
+
+
+
+
+        //GPIO_WritePin(31,1-GPIO_ReadPin(31));
 //        OSTimeDly(1000);
         OSTimeDlyHMSM(0,0,0,500);
     }

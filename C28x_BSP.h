@@ -28,6 +28,7 @@ void C28x_BSP_ADC_Init(void);
 void C28x_BSP_FLASH_Init(void);
 void C28x_BSP_eCAP_Init(void);
 
+void C28x_BSP_Key_Init(void);
 
 //Function function
 void scia_msg(unsigned char msg);

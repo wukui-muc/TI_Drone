@@ -121,9 +121,9 @@ void sendPositionData(void)
 
     PosDataToPC[2]=0X23;
 
-    FloatToUnsignedchar(3,RT_Info.Height_V *100,PosDataToPC);
-    FloatToUnsignedchar(7,RT_Info.PosX  ,PosDataToPC);
-    FloatToUnsignedchar(11,Sensor_Info.FlowVelX ,PosDataToPC);
+    FloatToUnsignedchar(3,RT_Info.FlowX_V*100,PosDataToPC);
+    FloatToUnsignedchar(7,RT_Info.LineY*100  ,PosDataToPC);
+    FloatToUnsignedchar(11,Target_Info.Yaw ,PosDataToPC);
     scib_msg(PosDataToPC);
 }
 
@@ -137,9 +137,9 @@ void sendUserData(void)
 
     UserDataToPC[2]=0X24;
 
-    FloatToUnsignedchar(3,Target_Info.Pitch ,UserDataToPC);
-    FloatToUnsignedchar(7,RT_Info.PosX,UserDataToPC);
-    FloatToUnsignedchar(11,OriginalFlowX.value,UserDataToPC);
+    FloatToUnsignedchar(3, RT_Info.LineY ,UserDataToPC);
+    FloatToUnsignedchar(7,RT_Info.FlowX_V,UserDataToPC);
+    FloatToUnsignedchar(11,Target_Info.BlackLineYaw,UserDataToPC);
     scib_msg(UserDataToPC);
 }
 

@@ -50,6 +50,7 @@ void Attitude_control(float PitchCalibration,float RollCalibration)
         }
 
         //外环角度单P控制
+
         if(RT_Info.Height>=0.8 && Fly_Mode== Data_Line)
         {
                 yawErro=Target_Info.Yaw;
@@ -57,17 +58,16 @@ void Attitude_control(float PitchCalibration,float RollCalibration)
         }
         else
         {
-            yawErro=0;
+           yawErro=0;
         }
+
+
            // 倾角分离，使用衰减算法来保持Pitch和Roll在大航向偏差控制下的稳定性   0.7为衰减系数
-           yawErro = 0.7f * yawErro  * cos(RT_Info.Pitch * 0.0174f) * cos(RT_Info.Roll * 0.0174f);
+           yawErro = 0.5f * yawErro  * cos(RT_Info.Pitch * 0.0174f) * cos(RT_Info.Roll * 0.0174f);
 
            OriginalYaw.value = PID_ParaInfo.Yaw.Kp * yawErro;
 //        OriginalYaw.value = PID_ParaInfo.Yaw.Kp * (Target_Info.Yaw - RT_Info.Yaw);
         UAVThrust.YawThrust = Limits_data (PID_Control(&PID_ParaInfo.YawRate,&OriginalYaw, OriginalYaw.value ,RT_Info.rateYaw,0.005,80,lowpass_filter),100,-100);
-
-//        }
-
     }
     else
     {

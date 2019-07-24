@@ -45,9 +45,20 @@ typedef enum{
     Data_Headfree = 1,
     Data_Point = 2,
     Data_Flow = 3,
-    Data_Follow = 4,
-    Data_VIO=5,
+    Data_Line= 4,
+    Data_Vio=5,
+    Data_Car=6,
+
 }FlyMode;
+
+typedef enum{
+   Detect_None=0,
+   Detect_Point=1,
+   Detect_Flow=2,
+   Detect_Line=3,
+   Detect_Vio=4,
+   Detect_Car=5,
+}DetectMode;
 
 typedef struct{
     //滤波时间
@@ -89,6 +100,9 @@ typedef struct{
     float AccHeight;
     float BlackLineV;
     float BlackLineYaw;
+
+    float DisX;
+    float DisY;
 }DroneTargetInfo;
 
 typedef struct{
@@ -301,12 +315,17 @@ typedef struct
     Remote_Control_Status  controlStatus;  //专业遥控器控制状态
     Height_Data_Switching  heightDataSwitching;  //高度数据来源切换
 
-    float PosX;
-    float PosY;
-    float PrePitch;
-    float PreY_V;
 
-
+    float LineY;
+    float LineY_V;
+    float FlowVX_fix;
+    float FlowVY_fix;
+    float FlowDisX;
+    float FlowDisY;//位移
+    float CarX;
+    float CarX_V;
+    float CarY;
+    float CarY_V;
 }DroneRTInfo;
 
 typedef struct{
@@ -319,6 +338,11 @@ typedef struct{
     float VIO_Xaxis;
     float VIO_Yaxis;
     float VIO_Zaxis;
+    float Raspberry_Line_Yaxis;
+    float Raspberry_carx;
+    float Raspberry_cary;
+
+
 }SensorData;
 
 //float 联合体

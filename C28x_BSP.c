@@ -23,6 +23,9 @@ __interrupt void cpu_timer2_isr(void){
 
 void C28x_BSP_Init(void){
     C28x_BSP_Led_Init();
+    //wukui
+    C28x_BSP_Key_Init();
+    //
     C28x_BSP_Spi_Init();
     C28x_BSP_Epwm_Init();
     C28x_BSP_Scia_Init();
@@ -64,8 +67,24 @@ void C28x_BSP_Tick_Init(void){
 void C28x_BSP_Led_Init(){
     GPIO_SetupPinMux(31, GPIO_MUX_CPU1, 0);
     GPIO_SetupPinOptions(31, GPIO_OUTPUT, GPIO_PUSHPULL);
+    GPIO_SetupPinMux(34, GPIO_MUX_CPU1, 0);
+    GPIO_SetupPinOptions(34, GPIO_OUTPUT, GPIO_PUSHPULL);
 }
-
+void C28x_BSP_Key_Init()
+{
+    //key1
+    GPIO_SetupPinMux(0, GPIO_MUX_CPU1, 0);
+    GPIO_SetupPinOptions(0,GPIO_INPUT,GPIO_PULLUP);
+    //key2
+    GPIO_SetupPinMux(1, GPIO_MUX_CPU1, 0);
+    GPIO_SetupPinOptions(1,GPIO_INPUT,GPIO_PULLUP);
+    //key3
+    GPIO_SetupPinMux(4, GPIO_MUX_CPU1, 0);
+    GPIO_SetupPinOptions(4,GPIO_INPUT,GPIO_PULLUP);
+     //key4
+    GPIO_SetupPinMux(5, GPIO_MUX_CPU1, 0);
+    GPIO_SetupPinOptions(5,GPIO_INPUT,GPIO_PULLUP);
+}
 /*
  * C28x spi∂Àø⁄≈‰÷√
  *

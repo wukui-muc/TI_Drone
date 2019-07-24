@@ -61,6 +61,8 @@ extern FlyMode Fly_Mode;
 extern Thrust UAVThrust;
 extern Throttle Throttle_Info;
 extern SensorData Sensor_Info;
+
+extern DetectMode Detect_Mode;
 //¿ØÖÆ²ÎÊý
 extern PIDOut OriginalPitch,OriginalRoll,OriginalYaw,OriginalPosX,OriginalPosY,OriginalPosZ,
                     OriginalPitchRate,OriginalRollRate,OriginalYawRate,OriginalVelX,OriginalVelY,OriginalVelZ,
@@ -73,7 +75,6 @@ extern KalmanFilter XAxis,YAxis,ZAxis,Barometer;
 
 //#define Drone_Wheelbase_330
 #define LaunchPad_PinConfig
-#define battery2200 530
-#define battery3000 545
+
 //#define battery4200
 #endif /* TASK_H_ */
