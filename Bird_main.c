@@ -504,7 +504,7 @@ static  void  App_TaskCombine (void *p_arg){
             /*********/
 
         }
-        else if(Detect_Mode=Detect_Car)
+        else if(Detect_Mode==Detect_Car)
         {
 
             /*地理坐标系的加速度X正轴  对应 相机的X正轴数据 */
@@ -521,10 +521,10 @@ static  void  App_TaskCombine (void *p_arg){
         else if(Detect_Mode == Detect_Vio)
         {
             OpticalFlow_Estimation(Sensor_Info.FlowVelX /100,Sensor_Info.FlowVelY /100,RT_Info.AccX,-RT_Info.AccY);
-            Sensor_Info.VIO_Xaxis=RT_Info.ratePitch*0.0174*RT_Info.Height;
-            Sensor_Info.VIO_Yaxis=RT_Info.rateRoll*0.0174*RT_Info.Height;
-            RT_Info.FlowVX_fix = RT_Info.FlowX_V+Sensor_Info.VIO_Xaxis;
-            RT_Info.FlowVY_fix = RT_Info.FlowX_V+Sensor_Info.VIO_Yaxis;//旋转补偿
+//             Sensor_Info.VIO_Xaxis=RT_Info.ratePitch*0.0174*RT_Info.Height;
+//             Sensor_Info.VIO_Yaxis=RT_Info.rateRoll*0.0174*RT_Info.Height;
+//             RT_Info.FlowVX_fix = RT_Info.FlowX_V+Sensor_Info.VIO_Xaxis;
+//             RT_Info.FlowVY_fix = RT_Info.FlowX_V+Sensor_Info.VIO_Yaxis;//旋转补偿
 
            if(RT_Info.Height>0.8*Target_Info.Height)
            {
@@ -532,9 +532,11 @@ static  void  App_TaskCombine (void *p_arg){
                RT_Info.FlowDisY+=RT_Info.FlowX_V*0.005f;
            }
 
-            if(RT_Info.Height<0.3)
+            if(FlightControl.landFlag==1)
             {
                 RT_Info.FlowDisX=0;
+                RT_Info.FlowDisY=0;
+                
             }
         }
 
