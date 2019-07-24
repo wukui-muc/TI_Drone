@@ -87,32 +87,6 @@ static  void  App_TaskDataToPC(void  *p_arg);
 static  void  App_TaskBattery(void *p_arg);
 /* LED Task */
 static  void  App_TaskLED(void  *p_arg);
-int flag=0;
-void Cal_Pos()
-{
-
-//    if(RT_Info.PreX_V>0.2 && flag==0)
-//    {
-//        flag=1;
-//        RT_Info.PreX_V=0;
-//    }
-//   if(flag==1)
-//    {
-//       RT_Info.PointX_V=RT_Info.PreX_V+ RT_Info.AccX*0.002;
-//       RT_Info.PointY_V= RT_Info.PreY_V+RT_Info.AccY*0.002;
-//       RT_Info.PosX+=(RT_Info.PreX_V+RT_Info.PointX_V)*0.002/2 + (RT_Info.AccX*0.002*0.002)/2;
-//           RT_Info.PosY+=(RT_Info.PreY_V+RT_Info.PointY_V)*0.002/2 + (RT_Info.AccY*0.002*0.002)/2;
-//           if(RT_Info.AccX)
-//           RT_Info.PreX_V=RT_Info.PointX_V;
-//           RT_Info.PreY_V=RT_Info.PointY_V;
-
-//    }
-
-//    RT_Info.PosX+=Sensor_Info.VIO_Xaxis;
-//    RT_Info.PosY+=Sensor_Info.VIO_Yaxis;
-
-}
-
 int main(void){
 /* Initialize the CPU and Board.                        */
     C28x_CPU_Init();
@@ -290,26 +264,11 @@ static  void  App_TaskIMU (void *p_arg){
    (void)&p_arg;
    /* Task body, always written as an infinite loop.       */
 
-//   RT_Info.PreX_V=0;
-//   RT_Info.PreY_V=0;
    int cnt=0;
     while (DEF_TRUE) {
 
-
-        if(cnt<=4500)
-        {
             IMU_getInfo();
-            cnt++;
-        }
-        else
-        {
-            IMU_getInfo();
-//            if(RT_Info.AccX<=0.02 && RT_Info.AccX>=-0.02)
-//                RT_Info.AccX=0;
-//            Cal_Pos();
-        }
 
-//        OSTimeDly(2);
         OSTimeDlyHMSM(0,0,0,2);
     }
 }
