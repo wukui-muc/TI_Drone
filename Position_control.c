@@ -7,12 +7,16 @@
 **********************************************************************************/
 #include "Position_control.h"
 
+int flagx1=0,flagy1=0;//可能应该写成全局变量
+                                 //当flag大于某一个值时，说明它已经达到稳定很多次了。这里写的是100，实际中可能变小。
+
 void Position_control(unsigned char Data_flag,float Climb,float Decline){
 //    /************************ 降落控制  ************************/
 
     static unsigned char hover= 0; //悬停标志位
     static unsigned char controlCnt =0; //用于控制周期的计数
     static float TgtHeight = 0;   // 目标高度变量
+    //可能应该写成全局变量
 
         controlCnt++; //控制周期计数  内环每次都做控制，外环两次控制周期做一次控制
     if(FlightControl.landFlag==1){
@@ -152,19 +156,17 @@ void Position_control(unsigned char Data_flag,float Climb,float Decline){
                 break;
 
             case 4://**********寻线**********/
-                 if(RockerControl.XaxisPos == 0  && RockerControl.YaxisPos == 0 &&
-                                Sensor_Info.Raspberry_Line_Yaxis!=0)
+                  if(RockerControl.XaxisPos == 0  && RockerControl.YaxisPos == 0 &&
+                                Sensor_Info.Raspberry_Line_Yaxis!=0 && RT_Info.Height>0.4)
                  {
-    //                                 OriginalFlowX.value =   PID_ParaInfo.FlowX.Kp  * RT_Info.FlowX  ;
-    //                                 Target_Info.Pitch = - Limits_data( PID_Control(&PID_ParaInfo.FlowVelX,&OriginalFlowVelX,OriginalFlowX.value,
-    //                                                                                                    RT_Info.FlowX_V,0.005,1.5,lowpass_filter) , 25, -25 ) ;
+
                          Target_Info.Pitch = - Limits_data( PID_Control(&PID_ParaInfo.FlowVelX,&OriginalFlowVelX,0.1,
-                                                                   RT_Info.FlowX_V,0.005,1.5,lowpass_filter) , 18, -18) ;
+                                                                   RT_Info.FlowX_V,0.005,1.5,lowpass_filter) , 20, -20) ;
 
                          OriginalPosY.value = PID_ParaInfo.PosY.Kp * RT_Info.LineY;
                          Target_Info.Roll = Limits_data( PID_Control(&PID_ParaInfo.VelY,&OriginalVelY,OriginalPosY.value,
                                                                      RT_Info.LineY_V,0.005,3,lowpass_filter) , 18 , -18);
-    //
+
                          Target_Info.Yaw = Target_Info.BlackLineYaw;
                  }
                  else
@@ -177,36 +179,23 @@ void Position_control(unsigned char Data_flag,float Climb,float Decline){
             case 5:/************************ 视觉里程计模式  ************************/
                 if(RockerControl.XaxisPos == 0  && RockerControl.YaxisPos == 0)
                 {
-//                      OriginalFlowX.value =   PID_ParaInfo.FlowX.Kp  * RT_Info.FlowX  ;
-//                      OriginalFlowY.value =   PID_ParaInfo.FlowY.Kp  * RT_Info.FlowY  ;
 
-
-
-//                    if(RT_Info.PosX<=180 || RT_Info.PosX>=270)
-//                    {
-                        OriginalFlowX.value=Limits_data( PID_Control(& PID_ParaInfo.FlowX,&OriginalFlowX,Target_Info.DisX,
-                                                                      RT_Info.FlowDisX,0.005,1.5,lowpass_filter) , 0.15, -0.15) ; //±0.3m/s的目标速度
-                        Target_Info.Pitch = - Limits_data( PID_Control(&PID_ParaInfo.FlowVelX,&OriginalFlowVelX,OriginalFlowX.value,
-                                                                            RT_Info.FlowX_V,0.005,1.5,lowpass_filter) , 20, -20 ) ;
-//
-//                    }
-//                    else if(RT_Info.PosX<=210 || RT_Info.PosX>=260)
-//                    {
+//wukui
 //                        OriginalFlowX.value=Limits_data( PID_Control(& PID_ParaInfo.FlowX,&OriginalFlowX,240,
-//                                                                                RT_Info.PosX,0.005,1.5,lowpass_filter) , 0.1, -0.1 ) ; //±0.3m/s的目标速度
-//                        Target_Info.Pitch = - Limits_data( PID_Control(&PID_ParaInfo.FlowVelX,&OriginalFlowVelX,OriginalFlowX.value,
-//                                                                               RT_Info.FlowX_V,0.005,1.5,lowpass_filter) , 25, -25 ) ;
-//                    }
-//                    else
-//                    {
+                    //                                                                                RT_Info.PosX,0.005,1.5,lowpass_filter) , 0.1, -0.1 ) ; //±0.3m/s的目标速度
+
 //
-//                      Target_Info.Pitch = - Limits_data( PID_Control(&PID_ParaInfo.FlowVelX,&OriginalFlowVelX,0,
-//                                                                            RT_Info.FlowX_V,0.005,1.5,lowpass_filter) , 25, -25 ) ;
-//                    }
-                        OriginalFlowY.value=Limits_data( PID_Control(& PID_ParaInfo.FlowX,&OriginalFlowX,Target_Info.DisY,
-                                                                             RT_Info.FlowDisY,0.005,1.5,lowpass_filter) , 0.15, -0.15) ; //±0.3m/s的目标速度
+                    Target_Info.Pitch = - Limits_data( PID_Control(&PID_ParaInfo.FlowVelX,&OriginalFlowVelX,OriginalFlowX.value,
+                                                                          RT_Info.FlowX_V,0.005,1.5,lowpass_filter) , 20, -20 ) ;
+//
+//
+////
+
+//                    OriginalFlowY.value=Limits_data( PID_Control(& PID_ParaInfo.FlowX,&OriginalFlowX,Target_Info.DisY,
+//                                                                             RT_Info.FlowDisY,0.005,1.5,lowpass_filter) , 0.1, -0.1) ; //±0.3m/s的目标速度
                     Target_Info.Roll = Limits_data( PID_Control(&PID_ParaInfo.FlowVelY,&OriginalFlowVelY,OriginalFlowY.value,
-                                                                            RT_Info.FlowY_V,0.005,1.5,lowpass_filter) , 20, -20 );
+                                                                            RT_Info.FlowY_V,0.005,1.5,lowpass_filter) , 10, -10 );
+//////wukui
                 }
                 else
                 {

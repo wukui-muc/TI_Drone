@@ -87,6 +87,32 @@ static  void  App_TaskDataToPC(void  *p_arg);
 static  void  App_TaskBattery(void *p_arg);
 /* LED Task */
 static  void  App_TaskLED(void  *p_arg);
+int flag=0;
+void Cal_Pos()
+{
+
+//    if(RT_Info.PreX_V>0.2 && flag==0)
+//    {
+//        flag=1;
+//        RT_Info.PreX_V=0;
+//    }
+//   if(flag==1)
+//    {
+//       RT_Info.PointX_V=RT_Info.PreX_V+ RT_Info.AccX*0.002;
+//       RT_Info.PointY_V= RT_Info.PreY_V+RT_Info.AccY*0.002;
+//       RT_Info.PosX+=(RT_Info.PreX_V+RT_Info.PointX_V)*0.002/2 + (RT_Info.AccX*0.002*0.002)/2;
+//           RT_Info.PosY+=(RT_Info.PreY_V+RT_Info.PointY_V)*0.002/2 + (RT_Info.AccY*0.002*0.002)/2;
+//           if(RT_Info.AccX)
+//           RT_Info.PreX_V=RT_Info.PointX_V;
+//           RT_Info.PreY_V=RT_Info.PointY_V;
+
+//    }
+
+//    RT_Info.PosX+=Sensor_Info.VIO_Xaxis;
+//    RT_Info.PosY+=Sensor_Info.VIO_Yaxis;
+
+}
+
 int main(void){
 /* Initialize the CPU and Board.                        */
     C28x_CPU_Init();
@@ -264,11 +290,26 @@ static  void  App_TaskIMU (void *p_arg){
    (void)&p_arg;
    /* Task body, always written as an infinite loop.       */
 
+//   RT_Info.PreX_V=0;
+//   RT_Info.PreY_V=0;
    int cnt=0;
     while (DEF_TRUE) {
 
-            IMU_getInfo();
 
+        if(cnt<=4500)
+        {
+            IMU_getInfo();
+            cnt++;
+        }
+        else
+        {
+            IMU_getInfo();
+//            if(RT_Info.AccX<=0.02 && RT_Info.AccX>=-0.02)
+//                RT_Info.AccX=0;
+//            Cal_Pos();
+        }
+
+//        OSTimeDly(2);
         OSTimeDlyHMSM(0,0,0,2);
     }
 }
@@ -399,8 +440,8 @@ static  void  App_TaskCombine (void *p_arg){
    (void)&p_arg;
 
 
-   int cnt=30;
-
+   int cnt=0;
+   Target_Info.DisX=1;
    /* Task body, always written as an infinite loop.       */
     while (DEF_TRUE) {
         /* 超声波数据的卡尔曼滤波融合 */
@@ -480,24 +521,89 @@ static  void  App_TaskCombine (void *p_arg){
         else if(Detect_Mode == Detect_Vio)
         {
             OpticalFlow_Estimation(Sensor_Info.FlowVelX /100,Sensor_Info.FlowVelY /100,RT_Info.AccX,-RT_Info.AccY);
-//             Sensor_Info.VIO_Xaxis=RT_Info.ratePitch*0.0174*RT_Info.Height;
-//             Sensor_Info.VIO_Yaxis=RT_Info.rateRoll*0.0174*RT_Info.Height;
-//             RT_Info.FlowVX_fix = RT_Info.FlowX_V+Sensor_Info.VIO_Xaxis;
-//             RT_Info.FlowVY_fix = RT_Info.FlowX_V+Sensor_Info.VIO_Yaxis;//旋转补偿
+//            Sensor_Info.VIO_Xaxis=RT_Info.ratePitch*0.0174*RT_Info.Height;
+//            Sensor_Info.VIO_Yaxis=RT_Info.rateRoll*0.0174*RT_Info.Height;
+//            RT_Info.FlowVX_fix = RT_Info.FlowX_V+Sensor_Info.VIO_Xaxis;
+//            RT_Info.FlowVY_fix = RT_Info.FlowX_V+Sensor_Info.VIO_Yaxis;//旋转补偿
 
            if(RT_Info.Height>0.8*Target_Info.Height)
            {
-               RT_Info.FlowDisX+=RT_Info.FlowX_V*0.005f;
-               RT_Info.FlowDisY+=RT_Info.FlowX_V*0.005f;
-           }
-
-            if(FlightControl.landFlag==1)
-            {
-                RT_Info.FlowDisX=0;
-                RT_Info.FlowDisY=0;
-                
+               if(Target_Info.DisX==1 && Target_Info.DisY==0)
+               {
+                   if(RT_Info.FlowDisX<=1)
+                   {
+                       OriginalFlowX.value=0.3;
+                       RT_Info.FlowDisX+=RT_Info.FlowX_V*0.005f;
+                   }
+                   else
+                   {
+                       cnt++;
+                       OriginalFlowX.value=0;
+                       if(cnt==400)
+                       {
+                           Target_Info.DisY=1;
+                           cnt=0;
+                       }
+                   }
+               }
+               else if(Target_Info.DisX==1 && Target_Info.DisY==1)
+               {
+                   if(RT_Info.FlowDisY<=1)
+                  {
+                      OriginalFlowY.value=0.3;
+                      RT_Info.FlowDisY+=RT_Info.FlowY_V*0.005f;
+                  }
+                  else
+                  {
+                      cnt++;
+                      OriginalFlowY.value=0;
+                      if(cnt==400)
+                      {
+                           Target_Info.DisX=0;
+                           cnt=0;
+                      }
+                  }
+               }
+               else if(Target_Info.DisX==0 && Target_Info.DisY==1)
+               {
+                   if(RT_Info.FlowDisX>=0)
+                   {
+                       OriginalFlowX.value=-0.3;
+                       RT_Info.FlowDisX+=RT_Info.FlowX_V*0.005f;
+                   }
+                   else
+                   {
+                       cnt++;
+                         OriginalFlowX.value=0;
+                         if(cnt==400)
+                         {
+                             Target_Info.DisY=0;
+                             cnt=0;
+                         }
+                   }
+               }
+               else if(Target_Info.DisX==0 && Target_Info.DisY==0)
+               {
+                   if(RT_Info.FlowDisY>=0)
+                   {
+                       OriginalFlowY.value=-0.3;
+                       RT_Info.FlowDisY+=RT_Info.FlowY_V*0.005f;
+                   }
+                   else
+                   {
+                       cnt++;
+                       OriginalFlowY.value=0;
+                       if(cnt==400)
+                       {
+                           FlightControl.landFlag=1;
+                           cnt=0;
+                       }
+                   }
+               }
             }
-        }
+
+
+       }
 
 
         OSTimeDlyHMSM(0,0,0,5);
@@ -692,12 +798,13 @@ static  void  App_TaskLED (void *p_arg)
    int cnt=0;
    int key1,key2,key3,key4=0;
    int flag=0;
+
    /* Task body, always written as an infinite loop.       */
     while (DEF_TRUE) {
-        if(RT_Info.Height>0.8)
-        {
-            cnt++;
-        }
+//        if(RT_Info.Height>0.8)
+//        {
+//            cnt++;
+//        }
         key1=GPIO_ReadPin(0);
         key2=GPIO_ReadPin(1);
         key3=GPIO_ReadPin(4);
@@ -719,64 +826,10 @@ static  void  App_TaskLED (void *p_arg)
         }
         else if(key3==0 && FlightControl.ControlStart)//task3
         {
-             Fly_Mode=Data_Point;
-             if(cnt>=20)
-            {
-                Fly_Mode=Data_Car;
-                if(cnt>=40)
-                {
-                    FlightControl.landFlag=1;
-                    cnt=0;
-                }
-            }
+
         }
         else if(key4==0 && FlightControl.ControlStart)//task4
         {
-              Fly_Mode=Data_Vio;
-              if(flag==0)//直走
-              {
-                  Target_Info.DisX=1.5;
-                  if(RT_Info.FlowDisX>=0.9*Target_Info.DisX )
-                {
-                    flag=1;//右拐
-                    Target_Info.DisY=0.5;
-                    RT_Info.FlowDisX=0;
-                }
-              }
-              else if(flag==1)
-              {
-                  if(RT_Info.FlowDisY>=0.9*Target_Info.DisY)
-                  {
-                      flag=2;//向后
-                      Target_Info.DisX=-1.5;
-                      RT_Info.FlowDisY=0;
-                  }
-              }
-              else if(flag==2)
-              {
-                  if(RT_Info.FlowDisX<=0.9*Target_Info.DisX)
-                  {
-                       flag=3;
-                       Target_Info.DisY=-0.5;
-                       RT_Info.FlowDisX=0;
-                  }
-              }
-              else if(flag==3)
-              {
-                  if(RT_Info.FlowDisY<=0.95*Target_Info.DisY)
-                  {
-                      flag=0;
-                      Target_Info.DisX=0;
-                      Target_Info.DisY=0;
-                      RT_Info.FlowDisX=0;
-                      RT_Info.FlowDisY=0;
-                      FlightControl.landFlag=1;
-
-                  }
-              }
-
-
-
 
         }
 
