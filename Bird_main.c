@@ -826,7 +826,13 @@ static  void  App_TaskLED (void *p_arg)
         }
         else if(key3==0 && FlightControl.ControlStart)//task3
         {
-
+            if(Detect_Mode==Detect_Point)
+            Fly_Mode=Data_Point;
+           if(cnt>=5)
+           {
+               Fly_Mode=Data_Line;
+               cnt=0;
+           }
         }
         else if(key4==0 && FlightControl.ControlStart)//task4
         {
